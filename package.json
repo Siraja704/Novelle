@@ -16,6 +16,8 @@
     "@supabase/supabase-js": "^2.49.4",
     "expo": "~53.0.9",
     "expo-auth-session": "^6.1.5",
+    "expo-camera": "^16.1.6",
+    "expo-image-picker": "^16.1.4",
     "expo-status-bar": "~2.2.3",
     "expo-web-browser": "^14.1.6",
     "nativewind": "^4.1.23",

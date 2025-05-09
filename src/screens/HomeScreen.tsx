@@ -11,21 +11,25 @@ const HomeScreen = ({ navigation }: Props) => {
       title: "Face Analysis",
       description: "Get personalized face shape analysis and recommendations",
       color: "bg-blue-500",
+      screen: "FaceAnalysis",
     },
     {
       title: "Skincare Routine",
       description: "Create and track your daily skincare routine",
       color: "bg-green-500",
+      screen: "Home",
     },
     {
       title: "Virtual Try-On",
       description: "Try on different styles and looks virtually",
       color: "bg-purple-500",
+      screen: "Home",
     },
     {
       title: "Fragrance Finder",
       description: "Discover your perfect scent match",
       color: "bg-pink-500",
+      screen: "Home",
     },
   ];
 
@@ -41,10 +45,9 @@ const HomeScreen = ({ navigation }: Props) => {
             <TouchableOpacity
               key={index}
               className={`${feature.color} p-4 rounded-lg`}
-              onPress={() => {
-                // Navigate to respective feature screen
-                // navigation.navigate(feature.title.replace(/\s+/g, ''));
-              }}
+              onPress={() =>
+                navigation.navigate(feature.screen as keyof RootStackParamList)
+              }
             >
               <Text className="text-xl font-bold text-white mb-2">
                 {feature.title}

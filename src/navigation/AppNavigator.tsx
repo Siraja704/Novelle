@@ -6,12 +6,14 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginScreen from "../screens/LoginScreen";
 import OnboardingScreen from "../screens/OnboardingScreen";
 import HomeScreen from "../screens/HomeScreen";
+import FaceAnalysisScreen from "../screens/FaceAnalysisScreen";
 
 // Define the root stack parameter list
 export type RootStackParamList = {
   Login: undefined;
   Onboarding: undefined;
   Home: undefined;
+  FaceAnalysis: undefined;
   // Add more screens here as we develop them
 };
 
@@ -29,6 +31,7 @@ export const AppNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="FaceAnalysis" component={FaceAnalysisScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
