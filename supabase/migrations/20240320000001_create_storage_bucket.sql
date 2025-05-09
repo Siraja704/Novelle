@@ -1,6 +1,15 @@
--- Create a new storage bucket for face analysis images
+-- Create a new storage bucket for face analysis images if it doesn't exist
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('images', 'images', true);
+SELECT 'images', 'images', true
+WHERE NOT EXISTS (
+    SELECT 1 FROM storage.buckets WHERE id = 'images'
+);
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update their own images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own images" ON storage.objects;
 
 -- Set up storage policies
 CREATE POLICY "Public Access"
