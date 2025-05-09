@@ -3,7 +3,9 @@ import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Home">;
+type Props = NativeStackScreenProps<RootStackParamList, "MainApp">;
+
+type FeatureScreen = keyof RootStackParamList | "Home";
 
 const HomeScreen = ({ navigation }: Props) => {
   const features = [
@@ -11,27 +13,39 @@ const HomeScreen = ({ navigation }: Props) => {
       title: "Face Analysis",
       description: "Get personalized face shape analysis and recommendations",
       color: "bg-blue-500",
-      screen: "FaceAnalysis",
+      screen: "FaceAnalysis" as const,
     },
     {
       title: "Skincare Routine",
       description: "Create and track your daily skincare routine",
       color: "bg-green-500",
-      screen: "Home",
+      screen: "SkincareRoutineList" as const,
     },
     {
       title: "Virtual Try-On",
       description: "Try on different styles and looks virtually",
       color: "bg-purple-500",
-      screen: "Home",
+      screen: "Home" as const,
     },
     {
       title: "Fragrance Finder",
       description: "Discover your perfect scent match",
       color: "bg-pink-500",
-      screen: "Home",
+      screen: "Home" as const,
     },
   ];
+
+  const handleNavigation = (screen: FeatureScreen) => {
+    if (screen === "Home") {
+      // Handle home navigation
+      return;
+    }
+    if (screen === "SkincareRoutine") {
+      navigation.navigate("SkincareRoutine", { routineId: undefined });
+    } else {
+      navigation.navigate(screen);
+    }
+  };
 
   return (
     <ScrollView className="flex-1 bg-background">
@@ -45,9 +59,7 @@ const HomeScreen = ({ navigation }: Props) => {
             <TouchableOpacity
               key={index}
               className={`${feature.color} p-4 rounded-lg`}
-              onPress={() =>
-                navigation.navigate(feature.screen as keyof RootStackParamList)
-              }
+              onPress={() => handleNavigation(feature.screen)}
             >
               <Text className="text-xl font-bold text-white mb-2">
                 {feature.title}
