@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import * as Notifications from "expo-notifications";
 
 export interface SkincareRoutine {
   id: string;
@@ -38,6 +39,17 @@ export interface SkincareReminder {
   time_of_day: string;
   days_of_week: string[];
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SkincareSchedule {
+  id: string;
+  routine_id: string;
+  time_of_day: string;
+  days_of_week: number[];
+  is_active: boolean;
+  notification_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -171,6 +183,157 @@ export const getSkincareLogs = async (
     .select("*")
     .eq("routine_id", routineId)
     .order("completed_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+};
+
+// Schedule a routine
+export const scheduleSkincareRoutine = async (
+  schedule: Omit<SkincareSchedule, "id" | "created_at" | "updated_at">
+): Promise<SkincareSchedule> => {
+  const { data, error } = await supabase
+    .from("skincare_schedules")
+    .insert(schedule)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Schedule notifications
+  await scheduleNotifications(schedule);
+
+  return data;
+};
+
+// Get all schedules for a routine
+export const getSkincareSchedules = async (
+  routineId: string
+): Promise<SkincareSchedule[]> => {
+  const { data, error } = await supabase
+    .from("skincare_schedules")
+    .select("*")
+    .eq("routine_id", routineId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+};
+
+// Update a schedule
+export const updateSkincareSchedule = async (
+  scheduleId: string,
+  updates: Partial<SkincareSchedule>
+): Promise<SkincareSchedule> => {
+  const { data, error } = await supabase
+    .from("skincare_schedules")
+    .update(updates)
+    .eq("id", scheduleId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Update notifications if schedule changed
+  if (updates.time_of_day || updates.days_of_week || updates.is_active) {
+    await updateNotifications(scheduleId, updates);
+  }
+
+  return data;
+};
+
+// Delete a schedule
+export const deleteSkincareSchedule = async (
+  scheduleId: string
+): Promise<void> => {
+  const { error } = await supabase
+    .from("skincare_schedules")
+    .delete()
+    .eq("id", scheduleId);
+
+  if (error) throw error;
+
+  // Cancel notifications
+  await cancelNotifications(scheduleId);
+};
+
+// Helper function to schedule notifications
+const scheduleNotifications = async (
+  schedule: Omit<SkincareSchedule, "id" | "created_at" | "updated_at">
+) => {
+  const { routine_id, time_of_day, days_of_week } = schedule;
+
+  // Get routine details
+  const { routine } = await getSkincareRoutine(routine_id);
+
+  // Schedule notifications for each day
+  for (const day of days_of_week) {
+    const [hours, minutes] = time_of_day.split(":").map(Number);
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Skincare Reminder",
+        body: `Time for your ${routine.name} routine!`,
+        data: { routine_id },
+      },
+      trigger: {
+        hour: hours,
+        minute: minutes,
+        weekday: getWeekdayNumber(day),
+        repeats: true,
+      },
+    });
+  }
+};
+
+// Helper function to update notifications
+const updateNotifications = async (
+  scheduleId: string,
+  updates: Partial<SkincareSchedule>
+) => {
+  // Cancel existing notifications
+  await cancelNotifications(scheduleId);
+
+  // Schedule new notifications if schedule is active
+  if (updates.is_active !== false) {
+    const schedule = await getSkincareSchedules(scheduleId);
+    if (schedule.length > 0) {
+      await scheduleNotifications(schedule[0]);
+    }
+  }
+};
+
+// Helper function to cancel notifications
+const cancelNotifications = async (scheduleId: string) => {
+  const schedules = await getSkincareSchedules(scheduleId);
+  if (schedules.length > 0) {
+    const schedule = schedules[0];
+    await Notifications.cancelScheduledNotificationAsync(scheduleId);
+  }
+};
+
+// Helper function to convert day name to number
+const getWeekdayNumber = (day: string): number => {
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  return days.indexOf(day) + 1;
+};
+
+export const createSkincareSchedule = async (
+  schedule: Omit<SkincareSchedule, "id" | "created_at" | "updated_at">
+): Promise<SkincareSchedule> => {
+  const { data, error } = await supabase
+    .from("skincare_schedules")
+    .insert(schedule)
+    .select()
+    .single();
 
   if (error) throw error;
   return data;

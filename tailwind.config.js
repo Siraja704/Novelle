@@ -5,45 +5,41 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        primary: {
+          light: "#007AFF",
+          dark: "#0A84FF",
+        },
+        success: {
+          light: "#34C759",
+          dark: "#30D158",
+        },
+        error: {
+          light: "#FF3B30",
+          dark: "#FF453A",
+        },
+        warning: {
+          light: "#FF9500",
+          dark: "#FF9F0A",
+        },
         background: {
           light: "#FFFFFF",
-          dark: "#1F2937",
+          dark: "#000000",
+        },
+        card: {
+          light: "#F2F2F7",
+          dark: "#1C1C1E",
         },
         text: {
           light: "#000000",
-          dark: "#F9FAFB",
-        },
-        primary: {
-          light: "#4F46E5",
-          dark: "#6366F1",
+          dark: "#FFFFFF",
         },
         secondary: {
-          light: "#6B7280",
-          dark: "#9CA3AF",
-        },
-        accent: {
-          light: "#8B5CF6",
-          dark: "#A78BFA",
-        },
-        card: {
-          light: "#F3F4F6",
-          dark: "#374151",
+          light: "#8E8E93",
+          dark: "#98989D",
         },
         border: {
-          light: "#E5E7EB",
-          dark: "#4B5563",
-        },
-        error: {
-          light: "#EF4444",
-          dark: "#F87171",
-        },
-        success: {
-          light: "#10B981",
-          dark: "#34D399",
-        },
-        warning: {
-          light: "#F59E0B",
-          dark: "#FBBF24",
+          light: "#C6C6C8",
+          dark: "#38383A",
         },
       },
     },

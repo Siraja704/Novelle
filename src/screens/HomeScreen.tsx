@@ -1,75 +1,69 @@
 import React from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/AppNavigator";
+import { useTheme } from "../context/ThemeContext";
+import type { MainTabScreenProps } from "../navigation/AppNavigator";
 
-type Props = NativeStackScreenProps<RootStackParamList, "MainApp">;
+type Props = MainTabScreenProps<"Dashboard">;
 
-type FeatureScreen = keyof RootStackParamList | "Home";
+const HomeScreen: React.FC<Props> = ({ navigation }) => {
+  const { theme } = useTheme();
 
-const HomeScreen = ({ navigation }: Props) => {
   const features = [
     {
       title: "Face Analysis",
-      description: "Get personalized face shape analysis and recommendations",
-      color: "bg-blue-500",
+      description: "Analyze your skin condition",
+      color: theme.primary,
       screen: "FaceAnalysis" as const,
     },
     {
-      title: "Skincare Routine",
-      description: "Create and track your daily skincare routine",
-      color: "bg-green-500",
+      title: "Skincare Routines",
+      description: "Manage your skincare routines",
+      color: theme.success,
       screen: "SkincareRoutineList" as const,
     },
     {
       title: "Virtual Try-On",
-      description: "Try on different styles and looks virtually",
-      color: "bg-purple-500",
-      screen: "Home" as const,
-    },
-    {
-      title: "Fragrance Finder",
-      description: "Discover your perfect scent match",
-      color: "bg-pink-500",
-      screen: "Home" as const,
+      description: "Try on clothes virtually",
+      color: theme.warning,
+      screen: "VirtualTryOn" as const,
     },
   ];
 
-  const handleNavigation = (screen: FeatureScreen) => {
-    if (screen === "Home") {
-      // Handle home navigation
-      return;
-    }
-    if (screen === "SkincareRoutine") {
-      navigation.navigate("SkincareRoutine", { routineId: undefined });
-    } else {
-      navigation.navigate(screen);
-    }
+  const handleNavigation = (screen: (typeof features)[number]["screen"]) => {
+    navigation.navigate(screen);
+  };
+
+  const handleProductPress = () => {
+    // For testing, we'll use a hardcoded product ID
+    navigation.navigate("ProductDetails", { productId: "test-product-1" });
   };
 
   return (
     <ScrollView className="flex-1 bg-background">
       <View className="p-4">
-        <Text className="text-3xl font-bold text-primary mb-6">
-          Welcome Back!
-        </Text>
+        <Text className="text-2xl font-bold text-text mb-4">Home</Text>
 
-        <View className="space-y-4">
+        <View className="flex-row flex-wrap justify-between">
           {features.map((feature, index) => (
             <TouchableOpacity
               key={index}
-              className={`${feature.color} p-4 rounded-lg`}
+              className="w-[48%] bg-card rounded-lg p-4 mb-4"
               onPress={() => handleNavigation(feature.screen)}
             >
-              <Text className="text-xl font-bold text-white mb-2">
+              <Text className="text-lg font-semibold text-text mb-2">
                 {feature.title}
               </Text>
-              <Text className="text-white opacity-90">
-                {feature.description}
-              </Text>
+              <Text className="text-secondary">{feature.description}</Text>
             </TouchableOpacity>
           ))}
         </View>
+
+        <TouchableOpacity
+          className="bg-primary rounded-lg p-4 items-center mt-4"
+          onPress={handleProductPress}
+        >
+          <Text className="text-white font-semibold">View Product Details</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

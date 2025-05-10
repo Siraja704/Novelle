@@ -7,8 +7,10 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -18,7 +20,9 @@ import {
   addSkincareStep,
   getSkincareRoutine,
 } from "../services/skincare";
+import { generateAIRoutine, analyzeSkinCondition } from "../services/ai";
 import { useTheme } from "../context/ThemeContext";
+import { useNavigation } from "@react-navigation/native";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SkincareRoutine">;
 
@@ -63,6 +67,18 @@ const SkincareRoutineScreen = ({ navigation, route }: Props) => {
     time_of_day: [] as string[],
     duration_minutes: "",
   });
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [skinAnalysis, setSkinAnalysis] = useState<{
+    analysis: string;
+    recommendations: string[];
+    compatibility: {
+      product: string;
+      compatibility: "good" | "moderate" | "poor";
+    }[];
+  } | null>(null);
+
+  const navigationStack =
+    useNavigation<StackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
     if (route.params?.routineId) {
@@ -169,6 +185,90 @@ const SkincareRoutineScreen = ({ navigation, route }: Props) => {
     }
   };
 
+  const handleGenerateAIRoutine = async () => {
+    if (!formData.skin_type) {
+      Alert.alert("Error", "Please select your skin type first");
+      return;
+    }
+
+    try {
+      setIsGeneratingAI(true);
+      const recommendation = await generateAIRoutine(
+        formData.skin_type,
+        formData.concerns,
+        {
+          timeOfDay: ["Morning", "Evening"],
+          productTypes: productTypes,
+          duration: 30,
+        }
+      );
+
+      setFormData({
+        name: recommendation.routine.name,
+        description: recommendation.routine.description,
+        skin_type: recommendation.routine.skin_type,
+        concerns: recommendation.routine.concerns,
+      });
+
+      // Create the routine
+      const newRoutine = await createSkincareRoutine({
+        name: recommendation.routine.name,
+        description: recommendation.routine.description,
+        skin_type: recommendation.routine.skin_type,
+        concerns: recommendation.routine.concerns,
+      });
+
+      setRoutine(newRoutine);
+
+      // Add all steps
+      for (const step of recommendation.steps) {
+        const newStep = await addSkincareStep({
+          routine_id: newRoutine.id,
+          step_number: step.step_number,
+          product_name: step.product_name,
+          product_type: step.product_type,
+          instructions: step.instructions,
+          time_of_day: step.time_of_day,
+          duration_minutes: step.duration_minutes,
+        });
+        setSteps((prev) => [...prev, newStep]);
+      }
+
+      // Get skin analysis
+      const analysis = await analyzeSkinCondition(
+        formData.skin_type,
+        formData.concerns,
+        newRoutine
+      );
+      setSkinAnalysis(analysis);
+
+      Alert.alert(
+        "Success",
+        "AI-generated routine created successfully! Check the analysis tab for detailed recommendations."
+      );
+    } catch (error) {
+      Alert.alert("Error", "Failed to generate AI routine");
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
+  const handleSchedulePress = () => {
+    if (route.params?.routineId) {
+      navigationStack.navigate("SkincareSchedule", {
+        routineId: route.params.routineId,
+      });
+    }
+  };
+
+  const handleProgressPress = () => {
+    if (route.params?.routineId) {
+      navigationStack.navigate("SkincareProgress", {
+        routineId: route.params.routineId,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
@@ -243,6 +343,20 @@ const SkincareRoutineScreen = ({ navigation, route }: Props) => {
                 Create Routine
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              className="bg-green-500 p-4 rounded-lg mt-4"
+              onPress={handleGenerateAIRoutine}
+              disabled={isGeneratingAI}
+            >
+              {isGeneratingAI ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white text-center font-semibold">
+                  Generate AI Routine
+                </Text>
+              )}
+            </TouchableOpacity>
           </View>
         ) : (
           // Steps Management
@@ -276,6 +390,57 @@ const SkincareRoutineScreen = ({ navigation, route }: Props) => {
                 )}
               </View>
             ))}
+
+            {skinAnalysis && (
+              <View className="bg-white p-4 rounded-lg">
+                <Text className="text-xl font-bold mb-4">Skin Analysis</Text>
+                <Text className="text-gray-600 mb-4">
+                  {skinAnalysis.analysis}
+                </Text>
+
+                <Text className="text-lg font-semibold mb-2">
+                  Recommendations
+                </Text>
+                {skinAnalysis.recommendations.map((rec, index) => (
+                  <Text key={index} className="text-gray-600 mb-2">
+                    • {rec}
+                  </Text>
+                ))}
+
+                <Text className="text-lg font-semibold mt-4 mb-2">
+                  Product Compatibility
+                </Text>
+                {skinAnalysis.compatibility.map((comp, index) => (
+                  <View
+                    key={index}
+                    className="flex-row items-center justify-between mb-2"
+                  >
+                    <Text className="text-gray-600">{comp.product}</Text>
+                    <View
+                      className={`px-2 py-1 rounded-full ${
+                        comp.compatibility === "good"
+                          ? "bg-green-100"
+                          : comp.compatibility === "moderate"
+                          ? "bg-yellow-100"
+                          : "bg-red-100"
+                      }`}
+                    >
+                      <Text
+                        className={`${
+                          comp.compatibility === "good"
+                            ? "text-green-800"
+                            : comp.compatibility === "moderate"
+                            ? "text-yellow-800"
+                            : "text-red-800"
+                        }`}
+                      >
+                        {comp.compatibility}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
 
             <View className="space-y-4">
               <Text className="text-xl font-bold">Add New Step</Text>
@@ -385,9 +550,47 @@ const SkincareRoutineScreen = ({ navigation, route }: Props) => {
             </View>
           </View>
         )}
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={handleSchedulePress}
+          >
+            <Text style={styles.buttonText}>Schedule Routine</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={handleProgressPress}
+          >
+            <Text style={styles.buttonText}>View Progress</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  button: {
+    padding: 15,
+    borderRadius: 8,
+    minWidth: 150,
+    alignItems: "center",
+  },
+  secondaryButton: {
+    backgroundColor: "#6c757d",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});
 
 export default SkincareRoutineScreen;

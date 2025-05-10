@@ -17,6 +17,11 @@ import ProfileScreen from "../screens/ProfileScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import SkincareRoutineScreen from "../screens/SkincareRoutineScreen";
 import SkincareRoutineListScreen from "../screens/SkincareRoutineListScreen";
+import SkincareScheduleScreen from "../screens/SkincareScheduleScreen";
+import SkincareProgressScreen from "../screens/SkincareProgressScreen";
+import IngredientAnalysisScreen from "../screens/IngredientAnalysisScreen";
+import ProductDetailsScreen from "../screens/ProductDetailsScreen";
+import VirtualTryOnScreen from "../screens/VirtualTryOnScreen";
 
 // Define the root stack parameter list
 export type RootStackParamList = {
@@ -26,6 +31,11 @@ export type RootStackParamList = {
   FaceAnalysis: undefined;
   SkincareRoutine: { routineId?: string };
   SkincareRoutineList: undefined;
+  SkincareSchedule: { routineId: string };
+  SkincareProgress: { routineId: string };
+  IngredientAnalysis: { productId: string };
+  ProductDetails: { productId: string };
+  VirtualTryOn: undefined;
 };
 
 // Define the main app tab parameter list
@@ -94,6 +104,35 @@ export const AppNavigator = () => {
         <Stack.Screen
           name="SkincareRoutineList"
           component={SkincareRoutineListScreen}
+        />
+        <Stack.Screen
+          name="SkincareSchedule"
+          component={SkincareScheduleScreen}
+          options={{
+            title: "Schedule Routine",
+          }}
+        />
+        <Stack.Screen
+          name="SkincareProgress"
+          component={SkincareProgressScreen}
+          options={{
+            title: "Progress Tracking",
+          }}
+        />
+        <Stack.Screen
+          name="IngredientAnalysis"
+          component={IngredientAnalysisScreen}
+          options={{ title: "Ingredient Analysis" }}
+        />
+        <Stack.Screen
+          name="ProductDetails"
+          component={ProductDetailsScreen}
+          options={{ title: "Product Details" }}
+        />
+        <Stack.Screen
+          name="VirtualTryOn"
+          component={VirtualTryOnScreen}
+          options={{ title: "Virtual Try-On" }}
         />
       </Stack.Navigator>
     </NavigationContainer>
