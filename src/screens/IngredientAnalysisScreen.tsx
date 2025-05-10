@@ -14,7 +14,6 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import { useTheme } from "../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  getProductIngredients,
   addProductIngredient,
   analyzeProductIngredients,
   getIngredientAnalysisHistory,
@@ -22,12 +21,25 @@ import {
   IngredientAnalysis,
 } from "../services/ingredients";
 import { searchIngredients } from "../services/ingredients";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
 type Props = NativeStackScreenProps<RootStackParamList, "IngredientAnalysis">;
 
-const IngredientAnalysisScreen: React.FC<Props> = ({ route }) => {
-  const { productId } = route.params;
-  const { theme } = useTheme();
+const renderCompatibility = (
+  compatibility: IngredientAnalysis["analysis_result"]["compatibility"]
+) => {
+  return compatibility.map((item, index) => (
+    <View key={index} className="mb-2">
+      <Text className="text-text">
+        <Text className="font-semibold">{item.ingredient}:</Text>{" "}
+        {item.compatibility} - {item.reason}
+      </Text>
+    </View>
+  ));
+};
+
+const IngredientAnalysisScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { theme, themeMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [ingredients, setIngredients] = useState<
@@ -37,22 +49,31 @@ const IngredientAnalysisScreen: React.FC<Props> = ({ route }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Ingredient[]>([]);
   const [showSearch, setShowSearch] = useState(false);
+  const [history, setHistory] = useState<IngredientAnalysis[]>([]);
+
+  const productId = route.params.productId;
 
   useEffect(() => {
-    loadData();
+    if (!productId) {
+      Alert.alert("Error", "Product ID is required");
+      navigation.goBack();
+      return;
+    }
+
+    loadAnalysis();
   }, [productId]);
 
-  const loadData = async () => {
+  const loadAnalysis = async () => {
     try {
       setLoading(true);
-      const productIngredients = await getProductIngredients(productId);
-      setIngredients(productIngredients.map((pi) => pi.ingredient));
-      const latestAnalysis = await getIngredientAnalysisHistory(productId);
-      if (latestAnalysis.length > 0) {
-        setAnalysis(latestAnalysis[0]);
-      }
+      const analysisResult = await analyzeProductIngredients(productId);
+      const analysisHistory = await getIngredientAnalysisHistory(productId);
+
+      setAnalysis(analysisResult);
+      setHistory(analysisHistory);
     } catch (error) {
-      Alert.alert("Error", "Failed to load ingredients");
+      Alert.alert("Error", "Failed to load ingredient analysis");
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -77,6 +98,7 @@ const IngredientAnalysisScreen: React.FC<Props> = ({ route }) => {
       await addProductIngredient({
         product_id: productId,
         ingredient_id: ingredient.id,
+        concentration: null,
       });
       setIngredients((prev) => [...prev, ingredient]);
       setShowSearch(false);
@@ -206,39 +228,7 @@ const IngredientAnalysisScreen: React.FC<Props> = ({ route }) => {
           <Text style={[styles.compatibilityTitle, { color: theme.text }]}>
             Ingredient Compatibility
           </Text>
-          {analysis.analysis_result.compatibility.map((comp, index) => (
-            <View
-              key={index}
-              style={[
-                styles.compatibilityItem,
-                { backgroundColor: theme.card },
-              ]}
-            >
-              <Text style={[styles.ingredientName, { color: theme.text }]}>
-                {comp.ingredient}
-              </Text>
-              <View
-                style={[
-                  styles.compatibilityBadge,
-                  {
-                    backgroundColor:
-                      comp.compatibility === "good"
-                        ? theme.success
-                        : comp.compatibility === "moderate"
-                        ? theme.primary
-                        : theme.error,
-                  },
-                ]}
-              >
-                <Text style={styles.compatibilityText}>
-                  {comp.compatibility}
-                </Text>
-              </View>
-              <Text style={[styles.compatibilityReason, { color: theme.text }]}>
-                {comp.reason}
-              </Text>
-            </View>
-          ))}
+          {renderCompatibility(analysis.analysis_result.compatibility)}
         </View>
 
         {analysis.recommendations.length > 0 && (
@@ -270,32 +260,71 @@ const IngredientAnalysisScreen: React.FC<Props> = ({ route }) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View className="flex-1 items-center justify-center bg-background">
         <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
-    >
-      <View style={styles.content}>
+    <ScrollView className="flex-1 bg-background">
+      <View className="p-4">
+        <Text className="text-2xl font-bold text-text mb-4">
+          Ingredient Analysis
+        </Text>
+
         {showSearch ? renderSearchResults() : renderIngredientList()}
 
         <TouchableOpacity
-          style={[styles.analyzeButton, { backgroundColor: theme.primary }]}
+          className="bg-primary rounded-lg p-4 items-center mt-4"
           onPress={handleAnalyze}
           disabled={analyzing || ingredients.length === 0}
         >
           {analyzing ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.analyzeButtonText}>Analyze Ingredients</Text>
+            <Text className="text-white font-semibold">
+              Analyze Ingredients
+            </Text>
           )}
         </TouchableOpacity>
 
         {renderAnalysis()}
+
+        {history.length > 0 && (
+          <View>
+            <Text className="text-xl font-bold text-text mb-4">
+              Analysis History
+            </Text>
+            {history.map((item, index) => (
+              <View key={index} className="bg-card rounded-lg p-4 mb-4">
+                <Text className="text-sm text-secondary mb-2">
+                  {new Date(item.created_at).toLocaleDateString()}
+                </Text>
+                {renderCompatibility(item.analysis_result.compatibility)}
+                {item.warnings.length > 0 && (
+                  <View className="mt-2">
+                    <Text className="text-sm font-semibold text-error mb-1">
+                      Warnings:
+                    </Text>
+                    {item.warnings.map((warning, wIndex) => (
+                      <Text key={wIndex} className="text-error text-sm mb-1">
+                        • {warning}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        <TouchableOpacity
+          className="bg-primary rounded-lg p-4 items-center mt-4"
+          onPress={loadAnalysis}
+        >
+          <Text className="text-white font-semibold">Refresh Analysis</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -460,6 +489,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 10,
     flex: 1,
+  },
+  historyItem: {
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  historyDate: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  historyAnalysis: {
+    fontSize: 14,
+  },
+  refreshButton: {
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  refreshButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

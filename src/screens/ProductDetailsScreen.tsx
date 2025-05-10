@@ -1,42 +1,41 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useTheme } from "../context/ThemeContext";
-import { RootStackParamList } from "../navigation/AppNavigator";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/AppNavigator";
 
-type ProductDetailsScreenNavigationProp =
-  NativeStackNavigationProp<RootStackParamList>;
+type Props = NativeStackScreenProps<RootStackParamList, "ProductDetails">;
 
-interface Product {
-  id: string;
-  name: string;
-  // Add other product properties as needed
-}
-
-const ProductDetailsScreen = () => {
-  const navigation = useNavigation<ProductDetailsScreenNavigationProp>();
-  const { theme } = useTheme();
-  const [product, setProduct] = useState<Product>({ id: "", name: "" });
+const ProductDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { theme, themeMode } = useTheme();
+  const { productId } = route.params;
 
   const handleAnalyzeIngredients = () => {
-    navigation.navigate("IngredientAnalysis", { productId: product.id });
+    navigation.navigate("IngredientAnalysis", { productId });
   };
 
   return (
-    <View className="flex-1 p-5" style={{ backgroundColor: theme.background }}>
-      <TouchableOpacity
-        className="flex-row items-center justify-center p-4 rounded-lg mt-2.5"
-        style={{ backgroundColor: theme.primary }}
-        onPress={handleAnalyzeIngredients}
-      >
-        <Ionicons name="flask" size={24} color="#fff" />
-        <Text className="text-base font-semibold text-white ml-2">
-          Analyze Ingredients
+    <ScrollView className="flex-1 bg-background">
+      <View className="p-4">
+        <Text className="text-2xl font-bold text-text mb-4">
+          Product Details
         </Text>
-      </TouchableOpacity>
-    </View>
+
+        <View className="bg-card rounded-lg p-4 mb-4">
+          <Text className="text-lg font-semibold text-text mb-2">
+            Product ID
+          </Text>
+          <Text className="text-text">{productId}</Text>
+        </View>
+
+        <TouchableOpacity
+          className="bg-primary rounded-lg p-4 items-center mt-4"
+          onPress={handleAnalyzeIngredients}
+        >
+          <Text className="text-white font-semibold">Analyze Ingredients</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 };
 
